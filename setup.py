@@ -1,7 +1,7 @@
 from setuptools import setup
 from make_icons import make_iconset
 
-
+VERSION = '0.1.0'
 APP = ['blinkblink.py']
 DATA_FILES = []
 OPTIONS = {
@@ -14,6 +14,9 @@ OPTIONS = {
 }
 
 setup(
+    name='blinkblink',
+    description='macOS app reminding to take breaks from the screen',
+    version=VERSION,
     app=APP,
     data_files=DATA_FILES,
     options={'py2app': OPTIONS},
