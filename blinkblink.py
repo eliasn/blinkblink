@@ -99,7 +99,7 @@ class BlinkBlinkApp:
         main_left = self.main_alarm.tick()
         ctrl_left = self.control_alarm.tick()
         if main_left is not None:
-            self.app.title = _pretty(main_left, unit=False)
+            self.app.title = f'{main_left//60:02}:{main_left%60:02}'
             self.resume_item.title = 'Resume'
         else:
             self.app.title = '👀'
