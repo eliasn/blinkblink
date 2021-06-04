@@ -1,4 +1,11 @@
+import os
+import json
+from pathlib import Path
 import rumps
+
+
+APP_CONFIG_DIR = os.path.join(Path.home(), '.local', 'blinkblink')
+APP_CONFIG = os.path.join(APP_CONFIG_DIR, 'config.json')
 
 
 class Alarm:
@@ -39,23 +46,41 @@ class Alarm:
         return self.left
 
 
+def _pretty(interval: int, unit: bool = True) -> str:
+    intervals = [86400, 3600, 60, 1]
+    names = ['d', 'h', 'm', 's']
+    s = ''
+    for i, n in zip(intervals, names):
+        name = n if unit else ':'
+        if interval >= i:
+            s += f'{interval // i}{name}'
+            interval %= i
+    if not s:
+        s = '0'
+    if not unit:
+        s = s[:-1]
+    return s
+
+
 class BlinkBlinkApp:
     def __init__(self):
         self.config = {
-            'app_name': 'blinkblink',
             'interval': 1200,  # 20 min
-            'pause': 'Pause for one hour',
-            'resume': 'Resume',
-            'message': 'Move your eyes away from the screen :)',
+            'pause': 3600,  # 1 hour
+            'reminder': 'Move your eyes away from the screen :)',
         }
+        os.makedirs(APP_CONFIG_DIR, exist_ok=True)
+        if os.path.isfile(APP_CONFIG):
+            config = json.load(open(APP_CONFIG))
+            self.config.update(config)
         self.app = rumps.App('blinkblink', '👀')
-        self.pause_item = rumps.MenuItem(self.config['pause'],
+        self.pause_item = rumps.MenuItem(f'Pause for {_pretty(self.config["pause"])}',
                                          callback=self.pause)
-        self.resume_item = rumps.MenuItem(self.config['resume'],
-                                          callback=None)
+        self.resume_item = rumps.MenuItem('Resume', callback=None)
         self.app.menu = [self.pause_item, self.resume_item]
         self.main_alarm = Alarm(self.config['interval'], True, self.notify)
-        self.control_alarm = Alarm(3600, False, lambda _: self.main_alarm.start())
+        self.control_alarm = Alarm(self.config['pause'], False,
+                                   lambda _: self.main_alarm.start())
         self.main_alarm.start()
         self.timer = rumps.Timer(self.tick, 1)
         self.timer.start()
@@ -67,18 +92,21 @@ class BlinkBlinkApp:
         self.app.title = '👀'
         rumps.notification(title='blinkblink',
                            subtitle='',
-                           message=self.config['message'],
+                           message=self.config['reminder'],
                            action_button='Okay')
 
     def tick(self, sender):
-        left = self.main_alarm.tick()
-        self.control_alarm.tick()
-        if left is not None:
-            min_left = left // 60
-            sec_left = left % 60
-            self.app.title = f'{min_left:02}:{sec_left:02}'
+        main_left = self.main_alarm.tick()
+        ctrl_left = self.control_alarm.tick()
+        if main_left is not None:
+            self.app.title = _pretty(main_left, unit=False)
+            self.resume_item.title = 'Resume'
         else:
             self.app.title = '👀'
+            if ctrl_left is not None:
+                self.resume_item.title = f'Resume [auto in {_pretty(ctrl_left)}]'
+            else:
+                self.resume_item.title = 'Resume'
 
     def pause(self, sender):
         self.main_alarm.stop()
