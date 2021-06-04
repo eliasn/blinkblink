@@ -28,7 +28,7 @@ python3 setup.py py2app
 
 # Installation
 
-Just drop the app to your Applications folder.
+Just drop the app located in `dist/` folder to your Applications folder.
 
 
 # Configuration
