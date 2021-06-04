@@ -22,7 +22,7 @@ screen.
 # Building
 
 ```shell
-python3 config.py py2app
+python3 setup.py py2app
 ```
 
 
